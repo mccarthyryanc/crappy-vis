@@ -1,0 +1,7 @@
+name: bokeh-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - bokeh
+  - pandas
