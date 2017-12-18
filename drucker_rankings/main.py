@@ -7,6 +7,7 @@ import pandas as pd
 from bokeh.plotting import figure
 from bokeh.layouts import layout, widgetbox
 from bokeh.models import ColumnDataSource, HoverTool, Div
+from bokeh.models import BoxZoomTool, ResetTool, WheelZoomTool
 from bokeh.models.widgets import Slider, RangeSlider, Select, TextInput
 from bokeh.io import curdoc
 
@@ -24,8 +25,8 @@ desc = Div(text=open(join(dirname(__file__), "description.html")).read(),
 # Create Input controls
 range_sliders = []
 for col in companies.columns.drop('Company'):
-    range_sliders.append(RangeSlider(start=np.floor(companies[col].min()),
-                                   end=np.ceil(companies[col].max()),
+    range_sliders.append(RangeSlider(start=np.floor(companies[col].min())-1,
+                                   end=np.ceil(companies[col].max())+1,
                                    value=(np.floor(companies[col].min()),
                                           np.ceil(companies[col].max())),
                                    step=1, title=col))
@@ -40,7 +41,8 @@ y_axis = Select(title="Y Axis", options=sorted(axis_list),
 source = ColumnDataSource(data=dict(x=[], y=[], company=[], satisfaction=[],
                                     engagement=[], innovation=[],
                                     responsibility=[], strength=[],
-                                    effectiveness=[], color=[], ranking=[]))
+                                    effectiveness=[], color=[], ranking=[],
+                                    alpha=[]))
 
 hover = HoverTool(tooltips=[
     ("Company", "@company"),
@@ -49,17 +51,20 @@ hover = HoverTool(tooltips=[
 ])
 
 p = figure(plot_height=600, plot_width=700, title="",
-           toolbar_location=None, tools=[hover])
-p.circle(x="x", y="y", source=source, size=7, line_color=None, color='color')
+           toolbar_location="below",
+           tools=[hover,BoxZoomTool(), ResetTool(), WheelZoomTool()])
+p.circle(x="x", y="y", source=source, size=7, line_color=None, color='color',
+         alpha='alpha')
 
 def select_companies():
     # Filter by ranges
     selected = companies
     selected['color'] = 'grey'
+    selected['alpha'] = 0.7
     for col,slider in zip(axis_list,range_sliders):
         min_val, max_val = slider.value
         selected = selected[(selected[col] >= min_val) &
-                            (selected[col] < max_val)]
+                            (selected[col] <= max_val)]
     selected.loc[companies['Company'] == focus.value, 'color'] = 'green'
     return selected
 
@@ -82,6 +87,7 @@ def update():
         responsibility=df['Social Responsibility'],
         strength=df['Financial Strength'],
         effectiveness=df['EFFECTIVENESS'],
+        alpha=df['alpha'],
     )
 
 controls = range_sliders
